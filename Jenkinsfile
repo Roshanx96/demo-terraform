@@ -1,45 +1,65 @@
-pipeline{
-    agent any 
-    stages{
-        stage('Code Checkout'){
-            steps{
-                git branch: 'main', url: 'git@github.com:Roshanx96/demo-terraform.git'
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'us-east-1'
+    }
+
+    stages {
+        stage('Code Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Roshanx96/demo-terraform.git'
             }
         }
-        stage('AWS Login'){
-            steps{
-                // Load AWS credentials once and export them to the pipeline environment
-                withCredentials([usernamePassword(credentialsId: 'aws-creds', usernameVariable: 'TMP_AWS_ACCESS_KEY_ID', passwordVariable: 'TMP_AWS_SECRET_ACCESS_KEY')]){
-                    script {
-                        // set them in the pipeline env so later stages can use them
-                        env.AWS_ACCESS_KEY_ID = TMP_AWS_ACCESS_KEY_ID
-                        env.AWS_SECRET_ACCESS_KEY = TMP_AWS_SECRET_ACCESS_KEY
+
+        stage('Login to AWS') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-cred', region: "${AWS_REGION}") {
+                        echo '✅ Logged into AWS successfully!'
+                        sh 'aws sts get-caller-identity'
                     }
                 }
             }
         }
-        stage('Terraform Init'){
-            steps{
-                sh 'terraform init'
+
+        stage('Terraform Init') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-cred', region: "${AWS_REGION}") {
+                        sh 'terraform init'
+                    }
+                }
             }
         }
-        stage('Terraform Plan'){
-            steps{
-                sh 'terraform plan'
+
+        stage('Terraform Plan') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-cred', region: "${AWS_REGION}") {
+                        sh 'terraform plan'
+                    }
+                }
             }
         }
-        stage('Terraform Apply'){
-            steps{
-                sh 'terraform apply -auto-approve'
+
+        stage('Terraform Apply') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-cred', region: "${AWS_REGION}") {
+                        sh 'terraform apply -auto-approve'
+                    }
+                }
             }
-        }   
+        }
     }
-    post{
-        success{
-            echo 'Pipeline executed successfully!'
+
+    post {
+        success {
+            echo '✅ Pipeline executed successfully!'
         }
-        failure{
-            echo 'Pipeline failed. Please check the logs.'
+        failure {
+            echo '❌ Pipeline failed. Please check the logs.'
         }
     }
 }

@@ -52,6 +52,15 @@ pipeline {
                 }
             }
         }
+        stage('Terraform Destroy') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-cred', region: "${AWS_REGION}") {
+                        sh 'terraform destroy -auto-approve'
+                    }
+                }
+            }
+        }
     }
 
     post {
